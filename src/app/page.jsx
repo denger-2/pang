@@ -22,6 +22,8 @@ export default function Home() {
   const [allUserInputs, setAllUserInputs] = useState("");
   const [userId, setUserId] = useState(null);
   const [isResponding, setIsResponding] = useState(false);
+  const [editIndex, setEditIndex] = useState(null);
+  const [editText, setEditText] = useState("");
   const [scanPhase, setScanPhase] = useState("idle");
   const [turnstileToken, setTurnstileToken] = useState("");
   const turnstileRef = useRef(null);
@@ -68,36 +70,27 @@ export default function Home() {
     }
   }, [streaming, animationsEnabled, fontSize]);
 
-  const fetchResponse = async () => {
-    if (!userInput.trim()) return;
-
+  const requestAIResponse = async (conversationMessages) => {
     try {
-      const updatedMessages = [...messages, { type: "user", text: userInput }];
-      setMessages(updatedMessages);
-      setUserInput("");
-      setHasInteracted(true);
-
-      setAllUserInputs((prev) => (prev ? `${prev}\n${userInput}` : userInput));
-
       setIsResponding(true);
       setScanPhase("waiting");
 
-      // Keep only the last 12 messages to prevent exceeding token limits
-      const apiMessages = updatedMessages.slice(-12).map(msg => ({
+      // Send the full conversation. Do not limit it to the last 12 messages.
+      const apiMessages = conversationMessages.map((msg) => ({
         role: msg.type === "user" ? "user" : "assistant",
-        content: msg.rawText || msg.text || ""
+        content: msg.rawText || msg.text || "",
       }));
 
-      // Only send turnstile token on first request; session cookie handles the rest
       const body = { messages: apiMessages };
+
       if (!isSessionVerified.current && turnstileToken) {
         body.turnstileToken = turnstileToken;
       }
 
-      const response = await fetch('/api', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+      const response = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -108,11 +101,13 @@ export default function Home() {
         throw new Error(await response.text());
       }
 
-      // ── Real streaming: read tokens as they arrive ──
+      if (!response.body) {
+        throw new Error("The server returned an empty response.");
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
-      // Add an empty AI message placeholder
       setScanPhase("typing");
       setMessages((prev) => [
         ...prev,
@@ -124,32 +119,28 @@ export default function Home() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         const token = decoder.decode(value, { stream: true });
         fullText += token;
 
-        if (!streaming) continue; // accumulate but don't render yet
+        if (!streaming) continue;
 
-        // Render immediately at raw network speed
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
-            type: "ai", text: fullText, rawText: fullText, isTyping: true,
+            type: "ai",
+            text: fullText,
+            rawText: fullText,
+            isTyping: true,
           };
           return updated;
         });
       }
 
-      // Mark done — trim to last complete sentence if cut off at token limit
-      const sentenceEnd = /[.!?。！？]/;
-      if (!sentenceEnd.test(fullText.slice(-1))) {
-        const lastPunct = Math.max(
-          fullText.lastIndexOf('.'),
-          fullText.lastIndexOf('!'),
-          fullText.lastIndexOf('?')
-        );
-        if (lastPunct !== -1) fullText = fullText.substring(0, lastPunct + 1);
-      }
+      fullText += decoder.decode();
 
+      // Keep the complete response exactly as returned.
+      // Do not cut unfinished sentences or code blocks.
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
@@ -160,27 +151,83 @@ export default function Home() {
         };
         return updated;
       });
-      setScanPhase("idle");
-      setIsResponding(false);
-      // Mark session as established so we skip Turnstile on future requests
+
       isSessionVerified.current = true;
     } catch (error) {
       console.error("Error fetching response:", error);
-      setIsResponding(false);
-      setScanPhase("idle");
 
-      // If error.message has text from our backend, show it. Otherwise generic error.
-      const errorText = error.message && error.message.length < 300
-        ? error.message
-        : "Something went wrong. Please try again.";
+      const errorText =
+        error.message && error.message.length < 300
+          ? error.message
+          : "Something went wrong. Please try again.";
 
       setMessages((prev) => [
         ...prev,
-        { type: "ai", text: errorText },
+        { type: "ai", text: errorText, rawText: errorText, isTyping: false },
       ]);
+    } finally {
+      setIsResponding(false);
+      setScanPhase("idle");
     }
   };
 
+  const fetchResponse = async () => {
+    const text = userInput.trim();
+
+    if (!text || isResponding) return;
+
+    const updatedMessages = [
+      ...messages,
+      { type: "user", text, rawText: text },
+    ];
+
+    setMessages(updatedMessages);
+    setUserInput("");
+    setHasInteracted(true);
+    setAllUserInputs((prev) => (prev ? `${prev}\n${text}` : text));
+
+    await requestAIResponse(updatedMessages);
+  };
+
+  const startEditingMessage = (index, messageText) => {
+    if (isResponding) return;
+    setEditIndex(index);
+    setEditText(messageText);
+  };
+
+  const cancelEditingMessage = () => {
+    setEditIndex(null);
+    setEditText("");
+  };
+
+  const resubmitEditedMessage = async () => {
+    const text = editText.trim();
+
+    if (!text || editIndex === null || isResponding) return;
+
+    // Keep the conversation only up to the edited user message.
+    // Everything after it will be regenerated.
+    const updatedMessages = messages
+      .slice(0, editIndex + 1)
+      .map((message, index) =>
+        index === editIndex
+          ? { ...message, text, rawText: text }
+          : message
+      );
+
+    setMessages(updatedMessages);
+    setEditIndex(null);
+    setEditText("");
+
+    setAllUserInputs(
+      updatedMessages
+        .filter((message) => message.type === "user")
+        .map((message) => message.rawText || message.text || "")
+        .join("\n")
+    );
+
+    await requestAIResponse(updatedMessages);
+  };
 
 
   const handleKeyPress = (e) => {
@@ -515,22 +562,88 @@ export default function Home() {
             {messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`flex w-full ${msg.type === "user" ? "justify-end" : "justify-start"
-                  }`}
+                className={`flex w-full ${
+                  msg.type === "user" ? "justify-end" : "justify-start"
+                }`}
               >
-                <div
-                  style={{ fontSize: currentFontSize }}
-                  className={`leading-relaxed break-words shadow-sm ${msg.type === "user"
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] md:max-w-[75%] shadow-lg shadow-indigo-500/10"
-                    : "text-gray-200 flex-1 min-w-0 md:pr-12"
-                    }`}
-                >
-                  {msg.type === "user" ? (
-                    <span className="whitespace-pre-wrap">{msg.text}</span>
-                  ) : (
+                {msg.type === "user" ? (
+                  <div className="max-w-[85%] md:max-w-[75%]">
+                    {editIndex === idx ? (
+                      <div className="rounded-2xl border border-indigo-500/50 bg-[#141420] p-3 shadow-lg">
+                        <textarea
+                          autoFocus
+                          rows={4}
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              (e.ctrlKey || e.metaKey)
+                            ) {
+                              e.preventDefault();
+                              resubmitEditedMessage();
+                            }
+                          }}
+                          className="w-full resize-y rounded-xl border border-[#2a2a3e] bg-[#0d0d14] px-4 py-3 text-white outline-none focus:border-indigo-500"
+                          style={{ fontSize: currentFontSize }}
+                        />
+
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={cancelEditingMessage}
+                            className="rounded-lg bg-[#252535] px-3 py-2 text-sm text-gray-300 hover:bg-[#303045]"
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={resubmitEditedMessage}
+                            disabled={!editText.trim() || isResponding}
+                            className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                          >
+                            Save & resubmit
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          style={{ fontSize: currentFontSize }}
+                          className="leading-relaxed break-words bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-2xl rounded-tr-sm shadow-lg shadow-indigo-500/10"
+                        >
+                          <span className="whitespace-pre-wrap">
+                            {msg.text}
+                          </span>
+                        </div>
+
+                        <div className="mt-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEditingMessage(
+                                idx,
+                                msg.rawText || msg.text || ""
+                              )
+                            }
+                            disabled={isResponding}
+                            className="px-1 text-xs text-gray-500 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{ fontSize: currentFontSize }}
+                    className="leading-relaxed break-words text-gray-200 flex-1 min-w-0 md:pr-12"
+                  >
                     <MarkdownRenderer content={msg.text} />
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
 
