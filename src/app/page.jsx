@@ -253,7 +253,7 @@ export default function Home() {
     },
     {
       icon: <FaTelegram className="h-6 w-6" />,
-      href: "https://t.me/raselchatmohar",
+      href: "https://t.me/c_drives",
     },
   ];
 
