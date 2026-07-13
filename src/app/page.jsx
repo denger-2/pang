@@ -397,9 +397,9 @@ export default function Home() {
                 transition={{ duration: 1, ease: [0.4, 0.0, 0.2, 1] }}
                 className="text-lg text-gray-400"
               >
-                No Login. No Signup. 100% Free. No Logs. Completely Anonymous.<br />
-                Powered by the{" "}
-                <Highlight className="text-white text-xl font-bold font-serif">Private, uncensored AI GPT-OSS 120B</Highlight> API.
+                This Ai Made.<br />
+                By{" "}
+                <Highlight className="text-white text-xl font-bold font-serif">R4S31</Highlight> API.
               </motion.p>
 
               <motion.div
