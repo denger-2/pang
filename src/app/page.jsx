@@ -388,7 +388,7 @@ export default function Home() {
                 transition={{ duration: 0.5, ease: [0.4, 0.0, 0.2, 1] }}
                 className="relative mb-8 z-10 text-5xl md:text-7xl bg-clip-text text-transparent bg-gradient-to-b from-neutral-200 to-neutral-600 text-center font-sans font-bold py-2"
               >
-                Ask anything. We don't judge.
+                R4S31
               </motion.h1>
 
               <motion.p
@@ -475,12 +475,11 @@ export default function Home() {
           <div className="relative h-[100dvh] flex items-center bg-black justify-center w-screen">
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-20 font-mono">
               <h1 className="relative mb-8 z-10 text-5xl md:text-7xl bg-clip-text text-transparent bg-gradient-to-b from-neutral-200 to-neutral-600 text-center font-sans font-bold py-2">
-                Ask anything. We don't judge.
+                R4S31
               </h1>
               <p className="text-lg text-gray-400">
-                No Login. No Signup. 100% Free. No Logs. Completely Anonymous.<br />
-                Powered by the{" "}
-                <span className="inline-block pb-1 px-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xl font-bold font-serif">Private, uncensored AI GPT-OSS 120B</span> API.
+                This Ai Made By {" "}
+                <span className="inline-block pb-1 px-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xl font-bold font-serif">R4S31</span> API.
               </p>
               <div className="flex items-center gap-3 w-full max-w-xl mt-6">
                 <HoverBorderGradient
@@ -491,7 +490,7 @@ export default function Home() {
                 >
                   <input
                     type="text"
-                    placeholder="Message GPT-OSS..."
+                    placeholder="Message Me..."
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyPress}
