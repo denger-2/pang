@@ -399,7 +399,7 @@ export default function Home() {
               >
                 This Ai Made.<br />
                 By{" "}
-                <Highlight className="text-white text-xl font-bold font-serif">R4S31</Highlight> API.
+                <Highlight className="text-white text-xl font-bold font-serif">R4S31</Highlight>
               </motion.p>
 
               <motion.div
