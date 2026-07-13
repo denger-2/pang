@@ -5,7 +5,7 @@ import { IoSettingsSharp } from "react-icons/io5";
 import { IoClose } from "react-icons/io5";
 import { GridScan } from "./GridScan";
 import { HeroHighlight, Highlight } from "./hero-highlight";
-import { FaLinkedin, FaTwitter, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaTwitter, FaTelegram } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 import { HoverBorderGradient } from "./hover-border-gradient";
@@ -245,15 +245,15 @@ export default function Home() {
   const footerLinks = [
     {
       icon: <FaLinkedin className="h-6 w-6" />,
-      href: "https://www.linkedin.com/in/ankitnayak-dev/",
+      href: "",
     },
     {
       icon: <FaTwitter className="h-6 w-6" />,
-      href: "https://x.com/AnkitNayak_dev",
+      href: "",
     },
     {
-      icon: <FaGithub className="h-6 w-6" />,
-      href: "https://github.com/AnkitNayak-dev",
+      icon: <FaTelegram className="h-6 w-6" />,
+      href: "https://t.me/raselchatmohar",
     },
   ];
 
