@@ -80,7 +80,7 @@ async function callNvidiaCode(messages) {
             messages: messages,
             temperature: 0.2,
             top_p: 1,
-            max_tokens: 8192,
+            max_tokens: 4096,
             stream: true
         });
 
@@ -96,7 +96,7 @@ async function callNvidiaCode(messages) {
             messages: messages,
             temperature: 0.2,
             top_p: 1,
-            max_tokens: 8192,
+            max_tokens: 4096,
             stream: true
         });
 
@@ -162,7 +162,7 @@ Disallowed content:
             messages,
             temperature: 0.7,
             top_p: 1,
-            max_tokens: 8192,
+            max_tokens: 4096,
             stream: true
         });
     } catch (e) {
@@ -172,7 +172,7 @@ Disallowed content:
             messages,
             temperature: 0.7,
             top_p: 1,
-            max_tokens: 8192,
+            max_tokens: 4096,
             stream: true
         });
     }
